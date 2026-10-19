@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#101827">
+<title>Musa Taxi — Prezzi corsa</title>
+<link rel="manifest" href="manifest.json">
+<style>
+:root{--bg:#0b1220;--card:#131e30;--line:#26364d;--txt:#f3f6fb;--muted:#a9b8cc;--accent:#f6c453;--green:#8fe0b1}
+*{box-sizing:border-box}body{margin:0;background:linear-gradient(160deg,#111c2d,#080d17);color:var(--txt);font:16px system-ui,-apple-system,sans-serif;padding:env(safe-area-inset-top) 16px env(safe-area-inset-bottom)}
+main{max-width:620px;margin:0 auto;padding:18px 0 34px}.head{display:flex;align-items:center;gap:12px;margin:6px 0 20px}.logo{background:var(--accent);color:#111827;font-weight:900;border-radius:14px;padding:11px}.sub{color:var(--muted);font-size:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;margin:12px 0}.card h2{font-size:16px;margin:0 0 12px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}label{display:block;color:var(--muted);font-size:12px;margin-bottom:5px}input,select{width:100%;background:#0b1423;color:var(--txt);border:1px solid #33455f;border-radius:10px;padding:12px;font:inherit}button{border:0;border-radius:12px;padding:13px 15px;font:700 15px system-ui;cursor:pointer;background:var(--accent);color:#111827;width:100%;margin-top:10px}.secondary{background:#25344b;color:var(--txt)}.price{font-size:38px;font-weight:850;letter-spacing:-1px}.muted{color:var(--muted);font-size:13px}.row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid #26364d}.row:last-child{border:0}.status{font-size:12px;color:var(--muted);margin-top:8px}.station{padding:11px 0;border-bottom:1px solid #26364d}.station:last-child{border:0}.station strong{display:block}.pill{display:inline-block;border-radius:20px;padding:3px 8px;background:#20354b;color:var(--green);font-size:12px}.warn{color:#ffd58a}.tiny{font-size:11px;color:var(--muted);line-height:1.45}a{color:#f6c453}
+</style>
+</head>
+<body><main>
+<header class="head"><div class="logo">M</div><div><h1 style="font-size:22px;margin:0">Musa Taxi</h1><div class="sub">Preventivo corsa + confronto benzina Q8</div></div></header>
+
+<section class="card">
+<h2>Preventivo corsa</h2>
+<div class="grid">
+<div><label>Distanza totale (km, inclusi eventuali km a vuoto)</label><input id="km" type="number" min="0" step=".1" value="10"></div>
+<div><label>Consumo auto (L/100 km)</label><input id="cons" type="number" min="1" step=".1" value="7.5"></div>
+<div><label>Guadagno desiderato (€)</label><input id="profit" type="number" min="0" step=".5" value="10"></div>
+<div><label>Passeggeri</label><select id="people"><option value="1">1 persona</option><option value="2">2 persone</option><option value="3">3 persone</option><option value="4">4 persone</option></select></div>
+<div><label>Supplemento per passeggero oltre il primo (€)</label><input id="perperson" type="number" min="0" step=".5" value="2"></div>
+<div><label>Prezzo benzina usato (€/L)</label><input id="fuel" type="number" min="0" step=".001" value="1.85"></div>
+</div>
+<button id="calc">Calcola prezzo</button>
+<div style="margin-top:14px"><div class="muted">Prezzo consigliato (arrotondato all'euro superiore)</div><div class="price" id="fare">€ 12</div></div>
+<div class="row"><span class="muted">Carburante stimato</span><strong id="fuelcost">€ 1,39</strong></div>
+<div class="row"><span class="muted">Supplemento passeggeri</span><strong id="paxcost">€ 0,00</strong></div>
+<div class="row"><span class="muted">Supplemento minimo (+€5 se margine pre-supplemento &lt; €5)</span><strong id="mincost">€ 0,00</strong></div>
+<div class="row"><span class="muted">Margine stimato dopo benzina</span><strong id="margin">€ 10,61</strong></div>
+<p class="tiny">Il margine qui è prima di usura, manutenzione, assicurazione, tasse e altri costi. Il supplemento di €5 viene applicato quando il guadagno impostato più il supplemento passeggeri è inferiore a €5 rispetto al costo carburante già coperto (cioè margine previsto sotto €5).</p>
+</section>
+
+<section class="card">
+<h2>Prezzi benzina — Q8 zona Milano Est</h2>
+<div class="sub">Ricerca indicativa entro 10 km dal punto centrale Lambrate/Milano Est. La lista viene aggiornata quando apri l'app o tocchi Aggiorna; i dati dipendono dalla disponibilità del servizio dati.</div>
+<button id="refresh">Aggiorna prezzi e distributori</button>
+<div id="stations" class="status">Prezzi non ancora caricati. Premi “Aggiorna”.</div>
+<div class="row"><span class="muted">Media prezzi Q8 trovati</span><strong id="avg">—</strong></div>
+<div class="tiny">Il prezzo medio trovato viene inserito nel campo “Prezzo benzina usato” del preventivo. Se non è possibile recuperare dati, puoi inserirlo manualmente. Prezzi comunicati dai gestori possono cambiare: verifica il prezzo esposto prima del rifornimento.</div>
+</section>
+<footer class="tiny">Fonte ufficiale dei dati carburante: MIMIT / Osservatorio Prezzi Carburanti. Questa demo usa un servizio API pubblico di terze parti basato sugli open data MIMIT; non è un'integrazione ufficiale Q8 e potrebbe non essere disponibile sempre. Distanza/consumo e supplementi sono modificabili. Non è una tariffa taxi autorizzata.</footer>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const euro=n=>Number(n).toLocaleString('it-IT',{style:'currency',currency:'EUR'});
+function calc(){
+ const km=Math.max(0,+$('km').value||0), c=Math.max(0,+$('cons').value||0), fuel=Math.max(0,+$('fuel').value||0);
+ const profit=Math.max(0,+$('profit').value||0), pax=Math.max(1,+$('people').value||1), pp=Math.max(0,+$('perperson').value||0);
+ const gas=km*c/100*fuel, paxextra=(pax-1)*pp, before=profit+paxextra, supplement=(before<5?5:0);
+ const raw=gas+before+supplement, rounded=Math.ceil(raw);
+ $('fare').textContent=euro(rounded);$('fuelcost').textContent=euro(gas);$('paxcost').textContent=euro(paxextra);$('mincost').textContent=euro(supplement);$('margin').textContent=euro(rounded-gas);
+}
+$('calc').addEventListener('click',calc);['km','cons','profit','people','perperson','fuel'].forEach(id=>$(id).addEventListener('input',calc));calc();
+
+// Approximate search anchor: Lambrate, Milan. Public community API derived from MIMIT open data.
+const API='https://prezzi-carburante.onrender.com/api/distributori';
+async function refresh(){
+ $('stations').textContent='Caricamento…';$('avg').textContent='—';
+ try{
+  const url=API+'?latitude=45.4847&longitude=9.3015&distance=10&fuel=benzina&results=30';
+  const r=await fetch(url,{cache:'no-store'}); if(!r.ok)throw new Error('API non disponibile');
+  const data=await r.json();
+  const list=(Array.isArray(data)?data:[]).filter(x=>/q8/i.test([x.gestore,x.bandiera,x.nome,x.name].filter(Boolean).join(' '))&&Number(x.prezzo)>0);
+  if(!list.length){$('stations').innerHTML='<span class="warn">Nessun Q8 identificabile nei risultati ricevuti. Inserisci il prezzo manualmente o riprova.</span>';return}
+  list.sort((a,b)=>Number(a.prezzo)-Number(b.prezzo));
+  const prices=list.map(x=>Number(x.prezzo)).filter(Number.isFinite);
+  const mean=prices.reduce((a,b)=>a+b,0)/prices.length;
+  $('fuel').value=mean.toFixed(3);calc();$('avg').textContent=euro(mean);
+  $('stations').innerHTML=list.slice(0,8).map((s,i)=>`<div class="station"><strong>${i===0?'⭐ Più economico · ':''}${(s.gestore||s.bandiera||s.nome||'Q8')}</strong><span class="muted">${s.indirizzo||s.address||''}</span><div><span class="pill">${euro(Number(s.prezzo))}/L</span> <span class="tiny">${s.data||s.aggiornamento||''}</span></div></div>`).join('');
+ }catch(e){$('stations').innerHTML='<span class="warn">Non riesco a caricare i prezzi (connessione/API/CORS). Usa il campo prezzo benzina manualmente e riprova più tardi.</span>'}
+}
+$('refresh').addEventListener('click',refresh);
+if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}))}
+</script>
+</body></html>
